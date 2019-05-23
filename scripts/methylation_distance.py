@@ -1,22 +1,12 @@
 #!/usr/bin/env python3
-# readlevel analysis of NOMe-seq : plot heatmap of co-methylation
-import scipy.stats as ss
+# readlevel analysis of NOMe-seq : histogram of distances between accessible marks
 import sys
 import os
 import argparse
-import gzip
-from collections import namedtuple
-from plotnine import *
 import numpy as np
 import pandas as pd
 pd.options.mode.chained_assignment = None
-import matplotlib
-matplotlib.use('Agg')
-import seaborn as sns
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 from methylbed_utils import bed_to_coord,coord_to_bed,MethRead,tabix
-blues=["#6BAED6","#4292C6","#2171B5","#08519C","#08306B","#041938"]
 import time
 start_time = time.time()
 
