@@ -88,7 +88,7 @@ def get_mdistance(cpgpath,gpcpath,coords,verbose=False) :
     # filter out reads that don't have both cpg and gpc record
     for key in set(keys_include) : 
         if key not in cpg_dict.keys() :
-            keys_include.pop(key)
+            keys_include.remove(key)
     if len(keys_include) == 0 :  # no reads
         if verbose : 
             print("no reads in {}".format(coords),file=sys.stderr)
@@ -125,6 +125,7 @@ if __name__=="__main__":
     for reg in args.regions :
         coords = bed_to_coord(reg)
         distances = get_mdistance(args.cpg,args.gpc,coords,args.verbose)
+        if distances is None : continue
         if args.verbose : 
             print("outputting counts of distances for {}".format(coords),file=sys.stderr)
         counts_list = [ np.unique(x,return_counts=True) for x in distances ]
