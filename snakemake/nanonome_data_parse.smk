@@ -2,6 +2,20 @@
 import pandas as pd
 from snakemake.utils import validate
 
+rule mtsv_to_mbed:
+	input:
+		"{dir}/mcall/{sample}.{mod}.meth.tsv.gz"
+	params:
+		config['utildir']
+	output:
+		"{dir}/mbed/{sample}.{mod}.meth.bed.gz"
+	shell:
+		"gunzip -c {input} | "
+		"{params}/mtsv2bedGraph.py -m {wildcards.mod} --nome | "
+		"sort -T {wildcards.dir}/mbed -k1,1 -k2,2n | bgzip "
+		"> {output} && "
+		"tabix -p bed {output}"
+
 rule mbed_to_mfreq:
 	input:
 		"{dir}/mbed/{sample}.{mod}.meth.bed.gz"
