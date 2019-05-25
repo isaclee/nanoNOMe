@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # much of this is taken from the following script with adjustments for current version of nanopolish
 # https://github.com/jts/methylation-analysis/blob/master/calculate_call_accuracy.py
 import os
@@ -20,8 +20,8 @@ def parseArgs() :
     subparsers = parser.add_subparsers()
     # parent parser
     parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument('-o','--out',type=os.path.abspath,required=True,
-            help="output file path")
+    parent_parser.add_argument('-o','--out',type=os.path.abspath,required=False,
+            help="output file path for plots")
     parent_parser.add_argument('-v','--verbose',action='store_true',default=False,
             help="verbose output")
     parent_parser.add_argument('--methylated',type=os.path.abspath,required=True,
@@ -35,6 +35,12 @@ def parseArgs() :
             help = 'plot roc curve')
     parser_roc.add_argument('-n','--num',type=int,required=False,default=100000,
             help="number of data points")
+    parser_roc.add_argument('--table',action='store_true',default=False,
+            help="output a table of log likelihoods instead of plots")
+    parser_roc.add_argument('--roctable',action='store_true',default=False,
+            help="output a table of ROC instead of plots")
+    parser_roc.add_argument('--thrtable',action='store_true',default=False,
+            help="output a table of thresholds instead of plots")
     parser_roc.set_defaults(func=getROC)
     # parse args
     args = parser.parse_args()
@@ -74,6 +80,12 @@ def getROC(args) :
     unmeth_sites = filter_query(args.unmethylated,motif,args.num)
     if args.verbose : print("reading in methylated data",file=sys.stderr)
     meth_sites = filter_query(args.methylated,motif,args.num)
+    if args.table :
+        vals = unmeth_sites + meth_sites
+        labs = len(unmeth_sites)*["unmeth"] + len(meth_sites)*["meth"]
+        df = pd.DataFrame({'values':vals,'truth':labs})
+        df.to_csv(sys.stdout,index=False)
+        return
     # thresholds
     meth_array = np.array(meth_sites)
     unmeth_array = np.array(unmeth_sites)
@@ -93,6 +105,9 @@ def getROC(args) :
         [float(x)/len(unmeth_array) for x in fp]))
     roc_df = pd.DataFrame(roc_array,
             columns=['thr','tp','fp','tn','fn','recall','fallout']) 
+    if args.roctable :
+        roc_df.to_csv(sys.stdout,index=False)
+        return
     # get auc
     sortidx = np.argsort(roc_df['fallout'])
     fallout_sorted = np.append(np.array(roc_df['fallout'])[sortidx],1)
@@ -118,6 +133,12 @@ def getROC(args) :
             {'thr' : np.append(call_thresholds,call_thresholds), 
                 'data' : np.append(correct/called,[x/len(all_array_abs) for x in called]),
                 'type' : ["correct"]*len(call_thresholds)+["called"]*len(call_thresholds)})
+    if args.thrtable :
+        callthr_df.to_csv(sys.stdout,index=False)
+        return
+    if not args.out :
+        print("output file path required",file=sys.stderr)
+        return
     # lines at thr = 2.5
     xint = 2.5
     yidx = np.argwhere(callthr_df['thr'] == 2.5)

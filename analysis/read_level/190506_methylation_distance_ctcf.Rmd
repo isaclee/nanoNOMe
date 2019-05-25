@@ -1,0 +1,46 @@
+---
+title: "methylation distance test"
+author: "isaclee"
+date: "5/6/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("/home/isac/Code/ilee/plot/ggplot_theme.R")
+```
+
+```{bash getdist,include=FALSE, eval=FALSE}
+export PATH="/home/isac/Code/miniconda3/bin:$PATH"
+root="/kyber/Data/Nanopore/projects/nanonome/analysis"
+scr="/home/isac/Code/nanoNOMe/scripts/methylation_distance.py"
+outdir=$root/plots/mdist
+
+mbed="$root/data/nanonome/pooled/mbed/GM12878_nanoNOMe.pooled.gpc.meth.bed.gz"
+
+# let's first start with ctcf region
+reg="$root/data/gm12878/GM12878_CTCF.noTSS.center.2000bp.bed"
+regname="ctcf"
+cell="GM12878"
+out=$outdir/$cell.gpc.methdistance.$regname.txt
+shuf -n1000 $reg | $scr -v -i $mbed > $out
+```
+
+```{r plot,echo=FALSE,message=FALSE}
+root="/kyber/Data/Nanopore/projects/nanonome/analysis"
+outdir=file.path(root,"plots/mdist")
+regname="ctcf"
+cell="GM12878"
+dfp=file.path(outdir,paste(cell,"gpc.methdistance",regname,"txt",sep="."))
+tb = read_tsv(dfp)
+tb = tb[which(tb$region=="all"),]
+
+g = ggplot(tb,aes(x=distance,y=frequency)) +
+  geom_histogram(stat="identity") +
+  lims(x=c(0,1000),y=c(0,10000))
+
+if (length(unique(tb$region)) > 1){
+    g = g + facet_wrap(.~region)
+}
+print(g)
+```

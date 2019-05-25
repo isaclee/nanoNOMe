@@ -5,7 +5,9 @@ library(tidyverse)
 library(GenomicRanges)
 srcdir=dirname(get_Rscript_filename())
 if (is.na(srcdir)){ srcdir="." }
-source(file.path(srcdir,"../../script/methylation_plot_utils.R"))
+if (rstudioapi::isAvailable()){ 
+    srcdir = dirname(rstudioapi::getSourceEditorContext()$path)}
+source(file.path(srcdir,"../../scripts/methylation_plot_utils.R"))
 
 root = commandArgs(trailingOnly=TRUE)[1]
 # default path if not provided
@@ -53,6 +55,21 @@ exp.fpkm=exp[which(exp$id %in% exp.qtile$id),] %>%
 tss.gr=tss.gr[which(tss.gr$id %in% exp.fpkm$id)]
 tss.gr$qtile=exp.fpkm$qtile[match(tss.gr$id,exp.fpkm$id)]
 tss.gr$fpkm=exp.fpkm$fpkm[match(tss.gr$id,exp.fpkm$id)]
+
+## export high and low expression genes
+if (FALSE){
+    tss.high = tss.gr[which(tss.gr$qtile==4)]
+    tss.low = tss.gr[which(tss.gr$qtile==1)]
+    bed.high = GRangesTobed(tss.high)
+    bed.low = GRangesTobed(tss.low)
+    names.high = bed.high[,"id"]
+    names.low = bed.low[,"id"]
+    outdir=file.path(root,"data/gm12878")
+    highpath = file.path(outdir,"GM12878_rnaseq_highexpression.geneid.txt")
+    lowpath = file.path(outdir,"GM12878_rnaseq_lowexpression.geneid.txt")
+    write_tsv(names.high,highpath,col_names=F)
+    write_tsv(names.low,lowpath,col_names=F)
+}
 
 # read in data around TSS
 dat.tss=lapply(seq(dim(pd)[1]),function(i){

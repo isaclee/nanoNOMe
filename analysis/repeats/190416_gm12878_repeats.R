@@ -36,7 +36,7 @@ chroms.noalt = chroms[-grep("_",chroms)]
 regs = regs[which(seqnames(regs) %in% chroms.noalt)]
 
 rtypes = unique(dbtypes)
-rtype = "SINE"
+rtype = "DNA"
 sum.list = list()
 ## doing one region at a time to save ram
 for (rtype in rtypes){
@@ -57,7 +57,6 @@ dat.all = do.call(rbind,dat.list) %>%
 rm(dat.list);gc()
 
 ## true number of cpgs per region
-genome = BSgenome.Hsapiens.UCSC.hg38
 regs.fix = regs.rtype
 strand(regs.fix)[which(strand(regs.fix)=="*")] = "+" # fix unstranded entries
 start(regs.fix) = start(regs.fix)+1 # from bed to coord
@@ -65,6 +64,7 @@ regs.cpg = regs.fix
 regs.gpc = regs.fix
 end(regs.cpg) = end(regs.cpg)+1
 start(regs.gpc) = start(regs.gpc)-1
+genome = BSgenome.Hsapiens.UCSC.hg38
 #  start(regs.cpg) = start(regs.cpg)-1
 seqs.cpg = getSeq(genome,regs.cpg)
 seqs.gpc = getSeq(genome,regs.gpc)
@@ -83,7 +83,7 @@ rm(dat.all);gc()
 dat.sum = dat.ovl %>%
   group_by(cell,calltype,dbtype,assay,regidx) %>%
   summarize(n = n(),
-            cov = mean(meth) + mean(unmeth),
+            cov = sum(cov),
             avgcov = cov/n,
             meth = mean(meth)/cov) %>%
   filter(n>2) # at least 3 sites
@@ -126,6 +126,7 @@ dat.correct = dat.spread %>%
 dat.nome = dat.correct[which(dat.correct$assay=="nanoNOMe"),]
 
 dat.spread[which(dat.spread$calltype=="gpc"),]
+dat.sum[which(dat.sum$regidx==8),]
 
 dat.correct %>% 
   group_by(cell,calltype,dbtype,assay) %>%

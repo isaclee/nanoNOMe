@@ -173,12 +173,12 @@ fi
 if [[ $STEP =~ all|step1|roc ]];then
   echo "roc curve"
   # cpg
-  python script/test_methylmodel.py roc -v \
+  python scripts/test_methylmodel.py roc -v \
     --methylated $ROOT/data/na12879_methylation/NA12878_CpG.cpg.meth.subset.tsv \
     --unmethylated $ROOT/data/na12878_methylation/NA12878_unmethylated.cpg.meth.subset.tsv \
     -o $ROOT/plots/model/NA12878_CpG_ROC.pdf -n 100000
   # gpc
-  python script/test_methylmodel.py roc -v --motif GC \
+  python scripts/test_methylmodel.py roc -v --motif GC \
     --methylated $ROOT/data/na12878_methylation/NA12878_GpC.gpc.meth.subset.tsv \
     --unmethylated $ROOT/data/na12878_methylation/NA12878_unmethylated.gpc.meth.subset.tsv \
     -o $ROOT/plots/model/NA12878_GpC_ROC.pdf -n 100000

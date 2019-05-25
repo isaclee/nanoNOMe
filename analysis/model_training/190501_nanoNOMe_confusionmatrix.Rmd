@@ -1,0 +1,67 @@
+---
+title: "nanoNOMe confusion matrix"
+author: "isaclee"
+date: "5/1/2019"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+params:
+  output_dir : "/home/isac/Dropbox/Data/nome-seq/"
+sansfont: Arial
+mainfont: Arial
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+source("/home/isac/Code/ilee/plot/ggplot_theme.R")
+```
+
+First get log-likelihood ratios for CpG and GpC samples
+```{bash get_table,eval=FALSE}
+root="/kyber/Data/Nanopore/projects/nanonome/analysis/data/methylation_standards"
+export PATH=/home/isac/.conda/envs/isacenv/bin:/usr/lib/anaconda3/bin:$PATH
+# cpg
+~/Code/nanoNOMe/scripts/test_methylmodel.py roc --model cpg 
+  --methylated $root/NA12878_CpG.subset.cpg.meth.tsv.gz \
+  --unmethylated $root/NA12878_unmethylated.subset.cpg.meth.tsv.gz \
+  --table > $root/NA12878_cpg_loglikratio.csv
+~/Code/nanoNOMe/scripts/test_methylmodel.py roc --model gpc \
+  --methylated $root/NA12878_GpC.subset.gpc.meth.tsv.gz \
+  --unmethylated $root/NA12878_unmethylated.subset.gpc.meth.tsv.gz \
+  --table > $root/NA12878_gpc_loglikratio.csv
+```
+
+Confusion matrix
+```{r confusion matrix, include=FALSE}
+root="/kyber/Data/Nanopore/projects/nanonome/analysis/data/methylation_standards"
+cpg_fp = file.path(root,"NA12878_cpg_loglikratio.csv")
+gpc_fp = file.path(root,"NA12878_gpc_loglikratio.csv")
+thr = 2.5
+
+cpg_tb = read_csv(cpg_fp) %>%
+  mutate(calltype="cpg")
+gpc_tb = read_csv(gpc_fp) %>%
+  mutate(calltype="gpc")
+tb.all = bind_rows(cpg_tb,gpc_tb)
+
+## remove uncalled values
+tb.filt = tb.all %>%
+  filter(abs(values)>=2.5)
+
+## assign label
+predictions = rep(NA,dim(tb.filt)[1])
+predictions[which(tb.filt$values<=-2.5)] = "unmeth"
+predictions[which(tb.filt$values>=2.5)] = "meth"
+tb.filt$prediction = predictions
+
+confusion = tb.filt %>% group_by(calltype,prediction,truth) %>%
+  summarize(n=n()) %>%
+  spread(prediction,n)
+```
+```{r table, results = 'asis',echo=FALSE}
+cpgidx = which(confusion$calltype=="cpg")
+kable(confusion[cpgidx,-1],caption = "CpG")
+kable(confusion[-cpgidx,-1],caption = "GpC")
+
+```
