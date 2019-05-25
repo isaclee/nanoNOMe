@@ -14,6 +14,8 @@ include:
 include:
   smkdir+"sv_analysis.smk"
 
+samples_tb = pd.read_csv(config['codedir']+"/sample_info.csv")
+
 rule parse_downloaded_data:
   input:
     "data/gm12878/GM12878_CTCF.noTSS.center.2000bp.bed",
@@ -33,10 +35,9 @@ rule frequency_analysis:
 
 rule nanonome_data:
   input:
-    expand("data/nanonome/pooled/bigwig/{sample}_nanoNOMe.pooled.{mod}.{what}.bw",
-      sample=["GM12878","MCF10A","MCF7","MDAMB231"],
-        mod=["cpg","gpc"],
-        what=["methylation","methcoverage"])
+    expand("analysis/mbed/{sample}.{mod}.meth.bed.gz",
+      sample=samples_tb['sample'],
+        mod=["cpg","gpc"])
 
 rule sv_analysis:
   input:
