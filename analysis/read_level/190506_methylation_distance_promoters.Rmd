@@ -29,23 +29,26 @@ tss.gr$id = sapply(strsplit(tss.gr$id,"[.]"),"[[",1)
 # expression data parsing
 qtiles=seq(0,1,.25)
 exp.list=lapply(exp.fp,read_tsv)
-exp.list=lapply(seq_along(exp.list),function(i){
+filter.list=lapply(seq_along(exp.list),function(i){
     x=exp.list[[i]]
     id=sapply(strsplit(x$gene_id,"[.]"),"[[",1)
-    y=tibble(id=id,transcripts=x$"transcript_id(s)",fpkm=x$FPKM_ci_upper_bound)
+    y=tibble(id=id,fpkm=x$FPKM_ci_upper_bound)
     y=y[which(y$id %in% tss.gr$id),]
+    unexpressed = tss.gr[-which(tss.gr$id %in% y$id)]
     qs=quantile(y$fpkm,probs=c(0.25,0.5,0.75))
-    y%>%mutate(qtile=ifelse(fpkm>=qs[1],2,1),
-               qtile=ifelse(fpkm>=qs[2],3,qtile),
-               qtile=ifelse(fpkm>=qs[3],4,qtile),
+    y = y%>%mutate(qtile=ifelse(fpkm>=qs[1],3,4),
+               qtile=ifelse(fpkm>=qs[2],2,qtile),
+               qtile=ifelse(fpkm>=qs[3],1,qtile),
                rep=i)
+    bind_rows(y,
+              tibble(id=unexpressed$id,fpkm=0,qtile=5,rep=i))
 })
-exp=do.call(rbind,exp.list)
+exp=do.call(rbind,filter.list)
 # using only genes that are consistent b/w the two replicates, taking average
 exp.qtile=exp%>%select(-fpkm)%>%
     spread(rep,qtile)%>%filter(`1`==`2`)%>%mutate(qtile=`1`)
 exp.fpkm=exp[which(exp$id %in% exp.qtile$id),] %>%
-    group_by(id,transcripts,qtile)%>%summarize(fpkm=mean(fpkm))
+    group_by(id,qtile)%>%summarize(fpkm=mean(fpkm))
 
 # merge with tss.gr
 tss.gr=tss.gr[which(tss.gr$id %in% exp.fpkm$id)]
@@ -56,15 +59,20 @@ tss.gr$fpkm=exp.fpkm$fpkm[match(tss.gr$id,exp.fpkm$id)]
 if (TRUE){
     tss.high = tss.gr[which(tss.gr$qtile==1)]
     tss.low = tss.gr[which(tss.gr$qtile==4)]
+    tss.no = tss.gr[which(tss.gr$qtile==4)]
     bed.high = GRangesTobed(tss.high)
     bed.low = GRangesTobed(tss.low)
+    bed.no = GRangesTobed(tss.no)
     names.high = bed.high[,"name"]
     names.low = bed.low[,"name"]
+    names.no = bed.no[,"name"]
     outdir=file.path(root,"data/gm12878")
     highpath = file.path(outdir,"GM12878_rnaseq_highexpression.geneid.txt")
     lowpath = file.path(outdir,"GM12878_rnaseq_lowexpression.geneid.txt")
+    nopath = file.path(outdir,"GM12878_rnaseq_noexpression.geneid.txt")
     write_tsv(names.high,highpath,col_names=F)
     write_tsv(names.low,lowpath,col_names=F)
+    write_tsv(names.no,lowpath,col_names=F)
 }
 
 ```
@@ -77,11 +85,14 @@ dir=$root/data/gm12878
 regs=$root/data/hg38/hg38_genes.TSS.slop2000bp.bed
 highnames=$dir/GM12878_rnaseq_highexpression.geneid.txt
 lownames=$dir/GM12878_rnaseq_lowexpression.geneid.txt
+nonames=$dir/GM12878_rnaseq_noexpression.geneid.txt
 highregs=$dir/GM12878_highexpression_genes.TSS.2000bp.bed
 lowregs=$dir/GM12878_lowexpression_genes.TSS.2000bp.bed
+noregs=$dir/GM12878_noexpression_genes.TSS.2000bp.bed
 
 awk 'NR==FNR{c[$1]++;next};c[$7]' $highnames $regs > $highregs
 awk 'NR==FNR{c[$1]++;next};c[$7]' $lownames $regs > $lowregs
+awk 'NR==FNR{c[$1]++;next};c[$7]' $nonames $regs > $noregs
 ```
 
 ## get distances between open marks
@@ -95,16 +106,23 @@ outdir=$root/plots/mdist
 cpg="$root/data/nanonome/pooled/mbed/GM12878_nanoNOMe.pooled.cpg.meth.bed.gz"
 gpc="$root/data/nanonome/pooled/mbed/GM12878_nanoNOMe.pooled.gpc.meth.bed.gz"
 
-# high
-reg="$root/data/gm12878/GM12878_highexpression_genes.TSS.2000bp.bed"
-regname="highexpression_promoters"
-cell="GM12878"
-out=$outdir/$cell.methdistance.$regname.txt
-log=$outdir/$cell.methdistance.$regname.log
-shuf -n1000 $reg | $scr -v -c $cpg -g $gpc -f $ref -o $out 2> $log
-# low
-reg="$root/data/gm12878/GM12878_lowexpression_genes.TSS.2000bp.bed"
-regname="lowexpression_promoters"
+## high
+#reg="$root/data/gm12878/GM12878_highexpression_genes.TSS.2000bp.bed"
+#regname="highexpression_promoters"
+#cell="GM12878"
+#out=$outdir/$cell.methdistance.$regname.txt
+#log=$outdir/$cell.methdistance.$regname.log
+#shuf -n1000 $reg | $scr -v -c $cpg -g $gpc -f $ref -o $out 2> $log
+## low
+#reg="$root/data/gm12878/GM12878_lowexpression_genes.TSS.2000bp.bed"
+#regname="lowexpression_promoters"
+#cell="GM12878"
+#out=$outdir/$cell.methdistance.$regname.txt
+#log=$outdir/$cell.methdistance.$regname.log
+#shuf -n1000 $reg | $scr -v -c $cpg -g $gpc -f $ref -o $out 2> $log
+# no
+reg="$root/data/gm12878/GM12878_noexpression_genes.TSS.2000bp.bed"
+regname="noexpression_promoters"
 cell="GM12878"
 out=$outdir/$cell.methdistance.$regname.txt
 log=$outdir/$cell.methdistance.$regname.log
@@ -114,7 +132,7 @@ shuf -n1000 $reg | $scr -v -c $cpg -g $gpc -f $ref -o $out 2> $log
 ```{r plot,fig.width = 12,fig.height = 8,echo=FALSE,message=FALSE}
 root="/kyber/Data/Nanopore/projects/nanonome/analysis"
 outdir=file.path(root,"plots/mdist")
-regnames=c("highexpression_promoters","lowexpression_promoters")
+regnames=c("highexpression_promoters","noexpression_promoters")
 cell="GM12878"
 tb.list = list()
 for (regname in regnames){
@@ -130,7 +148,6 @@ for (regname in regnames){
       ggtitle(regname)
     print(g)
 }
-
 ## overlay
 tb.list = lapply(tb.list,function(x){
   x[which(x$region=="all"),]
