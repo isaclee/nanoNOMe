@@ -37,7 +37,7 @@ pat_num=$(wc -l $old_pat | awk '{ print $1 }')
 variants=/dilithium/Data/Nanopore/projects/nomeseq/analysis/database/gm12878/variants/NA12878.vcf.gz
 
 # test ranges of combinations of -Q, -E, and -y
-regnames="PEG10 TP53 H19"
+regnames="PEG10 TP53 H19 C9orf85 IGF2R GAB1"
 q_range="1 5 10 20"
 e_range="0.1 0.2 0.25 0.3"
 y_range="1 5 10"
@@ -94,5 +94,4 @@ if [ "$1" == "phase" ];then
   done
 fi
 
-# igv - mcall still going
-
+## conclusion : using Q = 5, E = 0.25, y = 5

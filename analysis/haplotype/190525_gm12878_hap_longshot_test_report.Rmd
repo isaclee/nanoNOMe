@@ -1,0 +1,46 @@
+---
+title: "Longshot haplotyping result"
+author: "isaclee"
+date: "5/25/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("/home/isac/Code/ilee/plot/ggplot_theme.R")
+```
+
+```{r report,echo=FALSE,message=FALSE}
+root="/kyber/Data/Nanopore/projects/nanonome/analysis/data/hap"
+phasefp=file.path(root,"190516_GM12878_nanoNOMe.phasereport.txt")
+variantfp = file.path(root,"190516_GM12878_nanoNOMe.longshot_test.txt")
+
+vcf = read_csv(variantfp)
+phase = read_csv(phasefp)
+
+g = ggplot(vcf,aes(y=`sensitivity(%)`,group=E,x=E))+
+  geom_boxplot()
+print(g)
+g = ggplot(vcf,aes(y=`precision(%)`,group=E,x=E))+
+  geom_boxplot()
+print(g)
+# E = 0.25 seems to be the best
+# turns out q doesn't make any difference?
+# find one that maximized haplotyping %
+phase = phase %>%
+  mutate(phasefrac = (hap1+hap2)/totreads)
+g = ggplot(phase,aes(y=phasefrac,group=y,x=y)) +
+  geom_boxplot()
+print(g)
+# y = 5
+g = ggplot(phase,aes(y=phasefrac,group=Q,x=Q)) +
+  geom_boxplot()
+print(g)
+# Q = 5
+# performance of E = 0.25, y = 5, Q = 5
+vcf.sub = vcf[which(vcf$Q==5&vcf$E==.25&vcf$y==5),]
+vcf.sub
+phase.sub = phase[which(vcf$Q==5&vcf$E==.25&vcf$y==5),]
+phase.sub
+
+```
